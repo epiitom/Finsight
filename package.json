@@ -10,15 +10,19 @@
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
+    "axios": "^1.11.0",
     "lucide-react": "^0.542.0",
     "next": "15.5.2",
+    "node-cron": "^4.2.1",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "yahoo-finance2": "^2.13.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

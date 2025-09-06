@@ -1,10 +1,12 @@
+// data/mockData.ts
 import { Stock } from '../types/portfolio';
 
 export const mockStocks: Omit<Stock, 'investment' | 'portfolioPercentage' | 'presentValue' | 'gainLoss'>[] = [
   {
     id: '1',
     particulars: 'Reliance Industries Ltd',
-    purchasePrice: 2450.00,
+    symbol : 'RELIANCE',
+    purchasePrice: 245.00,
     quantity: 10,
     exchange: 'NSE',
     sector: 'Energy',
@@ -15,77 +17,84 @@ export const mockStocks: Omit<Stock, 'investment' | 'portfolioPercentage' | 'pre
   {
     id: '2',
     particulars: 'Tata Consultancy Services',
+    symbol: 'TCS',
     purchasePrice: 3200.00,
     quantity: 5,
     exchange: 'NSE',
     sector: 'Technology',
-    cmp: 3156.75, // Mock current price (lower than purchase)
+    cmp: 3156.75,
     peRatio: 28.3,
     latestEarnings: '₹11,342 Cr (Q2 FY24)',
   },
   {
     id: '3',
     particulars: 'HDFC Bank Ltd',
+    symbol: 'HDFCBANK',
     purchasePrice: 1650.00,
     quantity: 15,
     exchange: 'NSE',
     sector: 'Financials',
-    cmp: 1723.20, // Mock current price (higher than purchase)
+    cmp: 1723.20,
     peRatio: 18.7,
     latestEarnings: '₹16,512 Cr (Q2 FY24)',
   },
   {
     id: '4',
     particulars: 'Infosys Ltd',
+    symbol: 'INFY',
     purchasePrice: 1450.00,
     quantity: 12,
     exchange: 'NSE',
     sector: 'Technology',
-    cmp: 1389.45, // Mock current price (lower than purchase)
+    cmp: 1389.45,
     peRatio: 25.1,
     latestEarnings: '₹6,368 Cr (Q2 FY24)',
   },
   {
     id: '5',
     particulars: 'ICICI Bank Ltd',
+    symbol: 'ICICIBANK',
     purchasePrice: 980.00,
     quantity: 20,
     exchange: 'NSE',
     sector: 'Financials',
-    cmp: 1045.80, // Mock current price (higher than purchase)
+    cmp: 1045.80,
     peRatio: 15.6,
     latestEarnings: '₹9,648 Cr (Q2 FY24)',
   },
   {
     id: '6',
     particulars: 'Asian Paints Ltd',
+    symbol: 'ASIANPAINT',
     purchasePrice: 3100.00,
     quantity: 8,
     exchange: 'NSE',
     sector: 'Consumer Goods',
-    cmp: 2987.30, // Mock current price (lower than purchase)
+    cmp: 2987.30,
     peRatio: 52.4,
     latestEarnings: '₹1,234 Cr (Q2 FY24)',
   },
   {
     id: '7',
     particulars: 'Bharti Airtel Ltd',
+    symbol: 'BHARTIARTL',
     purchasePrice: 850.00,
     quantity: 25,
     exchange: 'NSE',
     sector: 'Telecommunications',
-    cmp: 923.15, // Mock current price (higher than purchase)
+    cmp: 923.15,
     peRatio: 67.8,
     latestEarnings: '₹3,593 Cr (Q2 FY24)',
   },
   {
     id: '8',
     particulars: 'Wipro Ltd',
+    symbol: 'WIPRO',
     purchasePrice: 420.00,
     quantity: 30,
     exchange: 'NSE',
     sector: 'Technology',
-    cmp: 398.25, // Mock current price (lower than purchase)
+    cmp: 398.25,
     peRatio: 22.9,
     latestEarnings: '₹2,835 Cr (Q2 FY24)',
   },

@@ -1,6 +1,7 @@
 export interface Stock {
   id: string;
   particulars: string; // Stock Name
+  symbol: string; // Stock symbol for API calls
   purchasePrice: number;
   quantity: number;
   investment: number; // Purchase Price × Qty (calculated)
