@@ -98,6 +98,30 @@ export const mockStocks: Omit<Stock, 'investment' | 'portfolioPercentage' | 'pre
     peRatio: 22.9,
     latestEarnings: '₹2,835 Cr (Q2 FY24)',
   },
+  {
+    id: '9',
+    particulars: 'LTIMindtree Ltd',
+    symbol: 'LTIM',
+    purchasePrice: 5500.00,
+    quantity: 4,
+    exchange: 'NSE',
+    sector: 'Technology',
+    cmp: 5623.15,
+    peRatio: 32.1,
+    latestEarnings: '₹1,135 Cr (Q2 FY24)',
+  },
+  {
+    id: '10',
+    particulars: 'Affle India Ltd',
+    symbol: 'AFFLE',
+    purchasePrice: 1200.00,
+    quantity: 8,
+    exchange: 'NSE',
+    sector: 'Technology',
+    cmp: 1156.40,
+    peRatio: 35.8,
+    latestEarnings: '₹89 Cr (Q2 FY24)',
+  },
 ];
 
 // Mock function to simulate API delay
