@@ -1,42 +1,36 @@
 // types/portfolio.ts
 
-/**
- * Stock exchange types used in Indian markets
- */
 export type Exchange = 'NSE' | 'BSE';
 
-/**
- * Core stock information that matches the actual data structure
- */
+
+
 export interface Stock {
-  // Static identifiers (from mock data)
+ 
   id: string;
-  particulars: string; // Stock Name
-  symbol: string; // Stock symbol for API calls (e.g., 'RELIANCE')
+  particulars: string; 
+  symbol: string; 
   exchange: Exchange;
-  sector: string; // Keep as string for flexibility
+  sector: string;
   
-  // Purchase information (from mock data)
+  
   purchasePrice: number;
   quantity: number;
   
-  // Calculated fields (computed by utils)
-  investment: number; // purchasePrice × quantity
-  portfolioPercentage: number; // calculated percentage of total portfolio
+ 
+  investment: number; 
+  portfolioPercentage: number; 
   
-  // Live market data (from API, can be 0 if API fails)
-  cmp: number; // Current Market Price
-  peRatio: number; // Price to Earnings ratio
-  latestEarnings: number; // Latest earnings as number (not string)
+
+  cmp: number; 
+  peRatio: number;
+  latestEarnings: number;
   
-  // Calculated live fields (computed by utils, optional for when API fails)
-  presentValue?: number; // cmp × quantity
-  gainLoss?: number; // presentValue - investment
+  
+  presentValue?: number; 
+  gainLoss?: number; 
 }
 
-/**
- * Sector summary matching actual usage in calculations
- */
+
 export interface SectorSummary {
   sector: string;
   totalInvestment: number;
@@ -45,9 +39,7 @@ export interface SectorSummary {
   stocks: Stock[];
 }
 
-/**
- * Complete portfolio data structure matching hook implementation
- */
+
 export interface PortfolioData {
   stocks: Stock[];
   sectorSummaries: SectorSummary[];
