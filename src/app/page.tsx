@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { PortfolioTable } from "../components/PortfolioTable"
 import { SectorGrouping } from "../components/SectorGrouping"
-import { ApiStatus } from "../components/ApiStatus"
 import { usePortfolio } from "../hooks/usePortfolio"
 import {
   RefreshCw,
@@ -70,16 +69,16 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <header className="bg-[#111111] border-b border-gray-800/50 sticky top-0 z-50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
+      <header className="bg-[#11111] border-b border-gray-800/50 sticky top-0 z-20 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 lg:px-5 ">
           <div className="flex items-center justify-between">
             <div className="space-y-3">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <Target className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white tracking-tight">Portfolio Command</h1>
+                  <h1 className="text-3xl font-bold text-white tracking-tight">FinSight</h1>
                   <p className="text-gray-400 font-medium">Professional Trading Dashboard</p>
                 </div>
               </div>
@@ -109,7 +108,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={toggleRealData}
-                className={`flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                className={`flex items-center space-x-3 px-4 py-3 cursor-pointer rounded-md text-sm focus:outline-none font-medium transition-all duration-200 ${
                   isRealDataEnabled
                     ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 shadow-lg shadow-green-500/20"
                     : "bg-[#1a1a1a] text-gray-400 hover:bg-[#222222] border border-gray-700/50"
@@ -122,7 +121,7 @@ export default function Dashboard() {
               <button
                 onClick={refreshData}
                 disabled={loading}
-                className="flex items-center space-x-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg shadow-blue-500/25"
+                className="flex items-center space-x-1 focus:outline-none focus:ring-0 bg-[#fefeff] hover:bg-neutral-200 disabled:opacity-50 cursor-pointer text-black font-medium py-3 px-2 rounded-md "
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 <span>Refresh Data</span>
@@ -198,7 +197,7 @@ export default function Dashboard() {
                 : "border-red-500/30 shadow-red-500/10 hover:border-red-500/50"
             }`}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 focus:outline-none">
               <div
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
                   isPositive ? "bg-green-500/20 shadow-green-500/20" : "bg-red-500/20 shadow-red-500/20"
@@ -221,42 +220,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* API Status */}
-        <ApiStatus isRealDataEnabled={isRealDataEnabled} />
 
-        {loading && (
-          <div className="bg-[#111111] border border-blue-500/30 rounded-2xl p-6 shadow-xl shadow-blue-500/10">
-            <div className="flex items-center space-x-4">
-              <RefreshCw className="h-5 w-5 text-blue-400 animate-spin" />
-              <div>
-                <p className="text-blue-400 font-semibold">
-                  {isRealDataEnabled ? "Syncing with live markets..." : "Updating portfolio data..."}
-                </p>
-                <p className="text-gray-400 text-sm">Real-time data processing in progress</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-[#111111] border border-red-500/30 rounded-2xl p-6 shadow-xl shadow-red-500/10">
-            <div className="flex items-center space-x-4">
-              <Activity className="h-5 w-5 text-red-400" />
-              <div>
-                <p className="text-red-400 font-semibold">Market Data Warning</p>
-                <p className="text-gray-400 text-sm">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
+       
 
         <div className="flex items-center justify-between">
-          <div className="bg-[#111111] border border-gray-800/50 rounded-2xl p-2 flex items-center space-x-2 shadow-xl">
+          <div className="bg-[#111111] border border-gray-800/50 rounded-md p-1 flex items-center space-x-2 shadow-xl">
             <button
               onClick={() => setActiveView("table")}
               className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 activeView === "table"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                  ? "bg-[#fefeff] text-black shadow-lg shadow-white-500/25"
                   : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
               }`}
             >
@@ -267,7 +240,7 @@ export default function Dashboard() {
               onClick={() => setActiveView("sectors")}
               className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 activeView === "sectors"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                  ? "bg-[#fefeff] text-black shadow-lg shadow-blue-500/25"
                   : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
               }`}
             >
@@ -285,7 +258,8 @@ export default function Dashboard() {
         {activeView === "table" ? (
           <PortfolioTable data={stocks} />
         ) : (
-          <SectorGrouping sectorSummaries={sectorSummaries} />
+        <SectorGrouping sectorSummaries={sectorSummaries} />
+
         )}
 
         <div className="text-center py-8">

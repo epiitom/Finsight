@@ -20,29 +20,20 @@ export const usePortfolio = () => {
     let processedStocks: Stock[] = [];
 
     if (useRealData) {
-      try {
-        // Fetch real data from APIs
-        const symbols = rawStocks.map(stock => stock.symbol);
-        const apiDataMap = await stockApiService.batchGetStockData(symbols);
+      // Fetch real data from APIs - no fallback to mock
+      const symbols = rawStocks.map(stock => stock.symbol);
+      const apiDataMap = await stockApiService.batchGetStockData(symbols);
 
-        processedStocks = rawStocks.map(stock => {
-          const apiData = apiDataMap.get(stock.symbol);
-          
-          return {
-            ...stock,
-            cmp: apiData?.price?.currentPrice || stock.cmp,
-            peRatio: apiData?.fundamentals?.peRatio || stock.peRatio,
-            latestEarnings: apiData?.fundamentals?.latestEarnings || stock.latestEarnings,
-          };
-        }) as Stock[];
-      } catch (apiError) {
-        console.error('API fetch failed, using mock data:', apiError);
-        // Fallback to mock data with variations
-        processedStocks = rawStocks.map(stock => ({
+      processedStocks = rawStocks.map(stock => {
+        const apiData = apiDataMap.get(stock.symbol);
+        
+        return {
           ...stock,
-          cmp: stock.cmp ? stock.cmp + (Math.random() - 0.5) * 10 : stock.cmp, // ±5 price variation
-        })) as Stock[];
-      }
+          cmp: apiData?.price?.currentPrice || 0, // Use 0 if no data
+          peRatio: apiData?.fundamentals?.peRatio || 0,
+          latestEarnings: apiData?.fundamentals?.latestEarnings || 0,
+        };
+      }) as Stock[];
     } else {
       // Use mock data with slight variations for demo
       processedStocks = rawStocks.map(stock => ({
@@ -89,21 +80,14 @@ export const usePortfolio = () => {
       setLastUpdate(new Date());
     } catch (err) {
       const errorMessage = useRealData 
-        ? 'API temporarily unavailable. Using demo data with realistic price movements.' 
+        ? 'Unable to fetch real-time data. Please check your connection and try again.' 
         : 'Failed to fetch portfolio data';
       setError(errorMessage);
       console.error('Portfolio fetch error:', err);
       
-      // Fallback to mock data if real API fails
-      if (useRealData) {
-        try {
-          const fallbackData = await processStockData(mockStocks, false);
-          setPortfolioData(fallbackData);
-          setLastUpdate(new Date());
-        } catch (fallbackErr) {
-          console.error('Fallback also failed:', fallbackErr);
-        }
-      }
+      // No fallback - let the error state handle the UI
+      // This ensures users see actual error state rather than misleading data
+      setPortfolioData(null);
     } finally {
       setLoading(false);
     }
@@ -112,6 +96,11 @@ export const usePortfolio = () => {
   const toggleRealData = useCallback(() => {
     setIsRealDataEnabled(prev => !prev);
   }, []);
+
+  // Retry function for when API fails
+  const retryFetch = useCallback(() => {
+    fetchPortfolioData(isRealDataEnabled);
+  }, [fetchPortfolioData, isRealDataEnabled]);
 
   // Initial load
   useEffect(() => {
@@ -137,5 +126,6 @@ export const usePortfolio = () => {
     isRealDataEnabled,
     refreshData: () => fetchPortfolioData(isRealDataEnabled),
     toggleRealData,
+    retryFetch, // Added retry function for error recovery
   };
 };

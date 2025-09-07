@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-
 import type React from "react"
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper, type ColumnDef } from "@tanstack/react-table"
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import type { Stock } from "../types/portfolio"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { TrendingUp, TrendingDown, PieChartIcon, BarChart3 } from "lucide-react"
 
 interface PortfolioTableProps {
   data: Stock[]
@@ -13,6 +13,19 @@ interface PortfolioTableProps {
 }
 
 const columnHelper = createColumnHelper<Stock>()
+
+const CHART_COLORS = [
+  "#2962ff",
+  "#00d4aa",
+  "#ff6b6b",
+  "#4ecdc4",
+  "#45b7d1",
+  "#96ceb4",
+  "#feca57",
+  "#ff9ff3",
+  "#54a0ff",
+  "#5f27cd",
+]
 
 export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh, isLoading = false }) => {
   console.log("📊 PortfolioTable render:", {
@@ -26,6 +39,33 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
         }
       : null,
   })
+
+  const sectorData = data.reduce(
+    (acc, stock) => {
+      const existing = acc.find((item) => item.sector === stock.sector)
+      if (existing) {
+        existing.value += stock.investment
+        existing.percentage += stock.portfolioPercentage
+      } else {
+        acc.push({
+          sector: stock.sector,
+          value: stock.investment,
+          percentage: stock.portfolioPercentage,
+        })
+      }
+      return acc
+    },
+    [] as Array<{ sector: string; value: number; percentage: number }>,
+  )
+
+  const performanceData = data
+    .filter((stock) => stock.gainLoss !== undefined)
+    .map((stock) => ({
+      name: stock.particulars.length > 10 ? stock.particulars.substring(0, 10) + "..." : stock.particulars,
+      gainLoss: stock.gainLoss || 0,
+      investment: stock.investment,
+      presentValue: stock.presentValue || 0,
+    }))
 
   const columns: ColumnDef<Stock, any>[] = [
     columnHelper.accessor("particulars", {
@@ -116,7 +156,6 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
       cell: (info) => {
         const gainLoss = info.getValue()
         const isPositive = gainLoss && gainLoss > 0
-
         return (
           <div className="flex items-center space-x-1">
             <span
@@ -168,6 +207,78 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
           </button>
         )}
       </div>
+
+      {data.length > 0 && (
+        <div className="px-6 py-6 border-b border-gray-700/50">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sector Allocation Pie Chart */}
+            <div className="bg-[#0d1421] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <PieChartIcon className="h-5 w-5 text-[#2962ff]" />
+                <h3 className="text-lg font-semibold text-white">Sector Allocation</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={sectorData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ sector, percentage }) => `${sector}: ${percentage.toFixed(1)}%`}
+                  >
+                    {sectorData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, "Investment"]}
+                    contentStyle={{
+                      backgroundColor: "#1a1e2e",
+                      border: "1px solid #374151",
+                      borderRadius: "8px",
+                      color: "#fff",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Performance Bar Chart */}
+            <div className="bg-[#0d1421] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="h-5 w-5 text-[#2962ff]" />
+                <h3 className="text-lg font-semibold text-white">Stock Performance</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={performanceData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} angle={-45} textAnchor="end" height={80} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      `₹${value.toLocaleString("en-IN")}`,
+                      name === "gainLoss" ? "Gain/Loss" : name,
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "#1a1e2e",
+                      border: "1px solid #374151",
+                      borderRadius: "8px",
+                      color: "#fff",
+                    }}
+                  />
+                  <Bar dataKey="gainLoss" fill="#10b981" radius={[4, 4, 0, 0]}>
+                    {performanceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? "#10b981" : "#ef4444"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-700/50">
