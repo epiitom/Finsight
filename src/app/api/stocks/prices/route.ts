@@ -1,20 +1,100 @@
-// app/api/stocks/prices/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {NextRequest, NextResponse} from 'next/server';
 import yahooFinance from 'yahoo-finance2';
+import yahooFinace from 'yahoo-finance2'
 
-interface StockPriceResponse {
-  symbol: string;
+interface StockPriceResponse{
+  symbol:string;
   price: number;
   previousClose?: number;
   changePercent?: number;
   success: boolean;
-  error?: string;
+  error?:string;
 }
 
 interface QuoteData {
   regularMarketPrice?: number;
   regularMarketPreviousClose?: number;
   regularMarketChangePercent?: number;
+}
+interface QueueTask {
+  symbol: string;
+  originalSymbol: string;
+  resolve: (result: StockPriceResponse) => void;
+}
+
+class ConcurrencyQueue {
+  private queue : QueueTask[] = [];
+  private running = 0;
+ private maxConcurrency: number;
+  private requestDelay: number;
+
+  constructor(maxConcurrency = 3, requestDelay = 200) {
+    this.maxConcurrency = maxConcurrency;
+    this.requestDelay = requestDelay;
+  }
+    async add(task: Omit<QueueTask,'resolve'>): Promise<StockPriceResponse> {
+         return new Promise((resolve) => {
+          this.queue.push({...task, resolve});
+          this.processQueue();
+         });
+    }
+
+    private async processQueue():Promise<void> {
+      if(this.running >= this.maxConcurrency || this.queue.length === 0){
+        return;
+      }
+      const task = this.queue.shift();
+      if(!task) return
+
+      this.running++;
+
+      try{
+         const result = await this.execuetTask(task)
+         task.resolve(result)
+      }
+      catch(error){
+        task.resolve({
+          symbol: task.originalSymbol,
+        price: 0,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }finally {
+      this.running--;
+      
+      // Add delay between requests to respect rate limits
+      if (this.requestDelay > 0) {
+        await delay(this.requestDelay);
+      }
+      
+      // Process next task in queue
+      this.processQueue();
+    }
+  }
+
+  private async execuetTask(task:QueueTask): Promise<StockPriceResponse> {
+    const quote = await fetchQuoteWithTimeout(task.symbol,8000);
+    if(!isValidQuote(quote)){
+        throw new Error('Invalid or incomplete quote data received');
+    }
+   return {
+      symbol: task.originalSymbol,
+      price: Number(quote.regularMarketPrice),
+      previousClose: quote.regularMarketPreviousClose 
+        ? Number(quote.regularMarketPreviousClose) 
+        : undefined,
+      changePercent: quote.regularMarketChangePercent 
+        ? Number(quote.regularMarketChangePercent) 
+        : undefined,
+      success: true
+    };
+  }
+    async waitForCompletion(): Promise<void> {
+    while (this.running > 0 || this.queue.length > 0) {
+      await delay(50); // Small delay to prevent busy waiting
+    }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -80,63 +160,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results: StockPriceResponse[] = [];
+    // Create queue with concurrency limit of 3 and 200ms delay between requests
+    const queue = new ConcurrencyQueue(3, 200);
+    const resultPromises: Promise<StockPriceResponse>[] = [];
 
-    // Process symbols with proper concurrency control
-    for (let i = 0; i < symbols.length; i++) {
-      const symbol = symbols[i];
-      
+    // Add all symbols to the queue
+    for (const symbol of symbols) {
       if (!symbol || typeof symbol !== 'string') {
-        results.push({
-          symbol: symbol?.toString() || 'undefined',
-          price: 0,
-          success: false,
-          error: 'Invalid symbol format'
-        });
+        // Handle invalid symbols immediately
+        resultPromises.push(
+          Promise.resolve({
+            symbol: symbol?.toString() || 'undefined',
+            price: 0,
+            success: false,
+            error: 'Invalid symbol format'
+          })
+        );
         continue;
       }
 
-      try {
-        const yahooSymbol = convertToYahooSymbol(symbol.trim());
-        const quote = await fetchQuoteWithTimeout(yahooSymbol, 8000);
-
-        if (!isValidQuote(quote)) {
-          throw new Error('Invalid or incomplete quote data received');
-        }
-
-        results.push({
-          symbol: symbol,
-          price: Number(quote.regularMarketPrice),
-          previousClose: quote.regularMarketPreviousClose 
-            ? Number(quote.regularMarketPreviousClose) 
-            : undefined,
-          changePercent: quote.regularMarketChangePercent 
-            ? Number(quote.regularMarketChangePercent) 
-            : undefined,
-          success: true
-        });
-
-        // Rate limiting - only delay if not the last item
-        if (i < symbols.length - 1) {
-          await delay(300);
-        }
-        
-      } catch (error) {
-        console.error(`Failed to fetch quote for ${symbol}:`, {
-          symbol,
-          yahooSymbol: convertToYahooSymbol(symbol.trim()),
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        });
-        
-        results.push({
-          symbol: symbol,
-          price: 0,
-          success: false,
-          error: error instanceof Error ? error.message : 'Quote fetch failed'
-        });
-      }
+      const yahooSymbol = convertToYahooSymbol(symbol.trim());
+      resultPromises.push(
+        queue.add({
+          symbol: yahooSymbol,
+          originalSymbol: symbol
+        })
+      );
     }
+
+    // Wait for all requests to complete
+    const results = await Promise.all(resultPromises);
 
     // Provide summary in response
     const successful = results.filter(r => r.success).length;
@@ -161,7 +214,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Internal server error while processing stock prices',
-        requestId: Date.now().toString() // For debugging
+        requestId: Date.now().toString()
       }, 
       { status: 500 }
     );
