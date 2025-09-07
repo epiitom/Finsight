@@ -17,7 +17,7 @@ const SectorCard: React.FC<{ sectorSummary: SectorSummary }> = ({ sectorSummary 
   const returnPercentage = (gainLoss / totalInvestment) * 100
 
   return (
-    <div className="bg-[#131722] rounded-lg shadow-lg border border-gray-700/50 overflow-hidden">
+    <div className="bg-[#0a0a0b] rounded-lg shadow-lg border border-gray-700/50 overflow-hidden">
       {/* Sector Header */}
       <div
         className="p-6 cursor-pointer hover:bg-[#1a1e2e] transition-colors"
@@ -87,14 +87,14 @@ const SectorCard: React.FC<{ sectorSummary: SectorSummary }> = ({ sectorSummary 
 
       {/* Expanded Stock List */}
       {isExpanded && (
-        <div className="border-t border-gray-700/50 bg-[#0d1421]">
+        <div className="border-t border-gray-700/50 bg-[#0a0a0b]">
           <div className="p-6">
             <h4 className="text-sm font-medium text-white mb-4">Stocks in {sector}</h4>
             <div className="space-y-3">
               {stocks.map((stock) => (
                 <div
                   key={stock.id}
-                  className="flex items-center justify-between py-3 px-4 bg-[#131722] rounded-md border border-gray-700/30 hover:bg-[#1a1e2e] transition-colors"
+                  className="flex items-center justify-between py-3 px-4 bg-[#0a0a0b] rounded-md border border-gray-700/30 hover:bg-[#1a1e2e] transition-colors"
                 >
                   <div className="flex items-center space-x-3">
                     <div>

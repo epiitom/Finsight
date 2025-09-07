@@ -95,7 +95,7 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
     }),
     columnHelper.accessor("peRatio", {
       header: "P/E Ratio",
-      cell: (info) => <span className="font-mono text-gray-300">{info.getValue()}</span>,
+      cell: (info) => <span className="font-mono text-gray-300">{info.getValue().toFixed(2)}</span>,
     }),
     columnHelper.accessor("latestEarnings", {
       header: "Latest Earnings",
@@ -184,7 +184,7 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
   })
 
   return (
-    <div className="bg-[#131722] shadow-lg rounded-lg overflow-hidden border border-gray-700/50">
+    <div className="bg-[#0a0a0b] shadow-lg rounded-lg overflow-hidden border border-gray-700/50">
       <div className="px-6 py-4 border-b border-gray-700/50 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold text-white">Portfolio Holdings</h2>
@@ -296,7 +296,7 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({ data, onRefresh,
               </tr>
             ))}
           </thead>
-          <tbody className="bg-[#131722] divide-y divide-gray-700/30">
+          <tbody className="bg-[#0a0a0b] divide-y divide-gray-700/30">
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="hover:bg-[#1a1e2e] transition-colors">
                 {row.getVisibleCells().map((cell) => (

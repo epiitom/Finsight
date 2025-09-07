@@ -69,40 +69,20 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <header className="bg-[#11111] border-b border-gray-800/50 sticky top-0 z-20 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 lg:px-5 ">
+      <header className="bg-[#11111] border-b border-gray-800/50  sticky top-0 px-5 py-2 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 ">
           <div className="flex items-center justify-between">
             <div className="space-y-3">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 rounded-2xl flex items-center justify-center shadow-lg ">
                   <Target className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white tracking-tight">FinSight</h1>
-                  <p className="text-gray-400 font-medium">Professional Trading Dashboard</p>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">FinSight</h1>
+                  <p className="text-gray-400 ">Professional Trading Dashboard</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-8 text-sm">
-                <div className="flex items-center space-x-3">
-                  {isRealDataEnabled ? (
-                    <>
-                      <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                      <Wifi className="h-4 w-4 text-green-400" />
-                      <span className="text-green-400 font-semibold">Live Market Data</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
-                      <WifiOff className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-500 font-semibold">Demo Mode</span>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2 text-gray-400">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">Updated {lastUpdate.toLocaleTimeString()}</span>
-                </div>
-              </div>
+              
             </div>
 
             <div className="flex items-center space-x-4">
@@ -227,7 +207,7 @@ export default function Dashboard() {
           <div className="bg-[#111111] border border-gray-800/50 rounded-md p-1 flex items-center space-x-2 shadow-xl">
             <button
               onClick={() => setActiveView("table")}
-              className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-3 px-6 py-3 rounded-xl cursor-pointer text-sm font-semibold transition-all duration-200 ${
                 activeView === "table"
                   ? "bg-[#fefeff] text-black shadow-lg shadow-white-500/25"
                   : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
@@ -238,7 +218,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveView("sectors")}
-              className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-3 px-6 py-3 rounded-xl cursor-pointer text-sm font-semibold transition-all duration-200 ${
                 activeView === "sectors"
                   ? "bg-[#fefeff] text-black shadow-lg shadow-blue-500/25"
                   : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
