@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import type React from "react"
@@ -181,11 +182,8 @@ export const PortfolioTable: React.FC<PortfolioTableProps> = ({
                 </>
               )}
             </div>
-            {changePercent !== undefined && (
-              <div className={`text-xs ${changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
-              </div>
-            )}
+            
+          
           </div>
         )
       },
