@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {NextRequest, NextResponse} from 'next/server';
 import yahooFinance from 'yahoo-finance2';
@@ -7,15 +8,51 @@ interface StockPriceResponse{
   price: number;
   previousClose?: number;
   changePercent?: number;
+  peRatio?: number;
+  forwardPE?: number;
+  earningsPerShare?: number;
+  forwardEPS?: number;
+  marketCap?: number;
+  dividendYield?: number;
+  bookValue?: number;
+  priceToBook?: number;
+  beta?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  avgVolume?: number;
   success: boolean;
   error?:string;
-  fromCache?: boolean; // Indicate if data came from cache
+  fromCache?: boolean;
+  dataQuality?: 'complete' | 'partial' | 'basic';
 }
 
-interface QuoteData {
+interface EnhancedQuoteData {
+  // Price module data
   regularMarketPrice?: number;
   regularMarketPreviousClose?: number;
   regularMarketChangePercent?: number;
+  marketCap?: number;
+  
+  // Summary Detail module data
+  trailingPE?: number;
+  forwardPE?: number;
+  dividendYield?: number;
+  beta?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  averageVolume?: number;
+  
+  // Default Key Statistics module data
+  trailingEps?: number;
+  forwardEps?: number;
+  bookValue?: number;
+  priceToBook?: number;
+  enterpriseValue?: number;
+  
+  // Financial Data module data
+  totalRevenue?: number;
+  revenuePerShare?: number;
+  returnOnEquity?: number;
 }
 
 interface QueueTask {
@@ -32,11 +69,11 @@ interface CacheEntry {
 
 class StockCache {
   private cache = new Map<string, CacheEntry>();
-  private readonly defaultTTL: number; // Time to live in milliseconds
+  private readonly defaultTTL: number;
   private readonly maxSize: number;
   
   constructor(ttlMinutes: number = 5, maxSize: number = 1000) {
-    this.defaultTTL = ttlMinutes * 60 * 1000; // Convert to milliseconds
+    this.defaultTTL = ttlMinutes * 60 * 1000;
     this.maxSize = maxSize;
   }
 
@@ -44,12 +81,10 @@ class StockCache {
     const now = Date.now();
     const ttl = customTTL || this.defaultTTL;
     
-    // Clean expired entries if cache is getting large
     if (this.cache.size >= this.maxSize) {
       this.cleanup();
     }
     
-    // If still at max size after cleanup, remove oldest entry
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey) {
@@ -58,7 +93,7 @@ class StockCache {
     }
     
     this.cache.set(symbol.toUpperCase(), {
-      data: { ...data, fromCache: false }, // Mark as fresh data initially
+      data: { ...data, fromCache: false },
       timestamp: now,
       expiresAt: now + ttl
     });
@@ -71,13 +106,11 @@ class StockCache {
       return null;
     }
     
-    // Check if entry has expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(symbol.toUpperCase());
       return null;
     }
     
-    // Return cached data with cache flag
     return {
       ...entry.data,
       fromCache: true
@@ -88,7 +121,6 @@ class StockCache {
     const entry = this.cache.get(symbol.toUpperCase());
     if (!entry) return false;
     
-    // Check if expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(symbol.toUpperCase());
       return false;
@@ -105,7 +137,6 @@ class StockCache {
     this.cache.clear();
   }
 
-  // Clean up expired entries
   cleanup(): void {
     const now = Date.now();
     const expiredKeys: string[] = [];
@@ -119,14 +150,13 @@ class StockCache {
     expiredKeys.forEach(key => this.cache.delete(key));
   }
 
-  // Get cache statistics
   getStats(): {
     size: number;
     maxSize: number;
     hitRate: number;
     expiredEntries: number;
   } {
-    this.cleanup(); // Clean before getting stats
+    this.cleanup();
     
     const now = Date.now();
     let expiredCount = 0;
@@ -140,14 +170,13 @@ class StockCache {
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
-      hitRate: 0, // Would need separate tracking for actual hit rate
+      hitRate: 0,
       expiredEntries: expiredCount
     };
   }
 }
 
-// Global cache instance - persists across requests
-const globalStockCache = new StockCache(5, 1000); // 5 minutes TTL, max 1000 entries
+const globalStockCache = new StockCache(5, 1000);
 
 class ConcurrencyQueue {
   private queue : QueueTask[] = [];
@@ -163,13 +192,12 @@ class ConcurrencyQueue {
   }
 
   async add(task: Omit<QueueTask,'resolve'>): Promise<StockPriceResponse> {
-    // Check cache first
     const cachedResult = this.cache.get(task.symbol);
     if (cachedResult) {
       console.log(`Cache hit for ${task.originalSymbol}`);
       return {
         ...cachedResult,
-        symbol: task.originalSymbol // Restore original symbol
+        symbol: task.originalSymbol
       };
     }
 
@@ -191,17 +219,16 @@ class ConcurrencyQueue {
     try{
       const result = await this.executeTask(task);
       
-      // Cache successful results
       if (result.success) {
         this.cache.set(task.symbol, {
           ...result,
-          symbol: task.symbol // Cache with Yahoo symbol
+          symbol: task.symbol
         });
       }
       
       task.resolve({
         ...result,
-        symbol: task.originalSymbol // Return with original symbol
+        symbol: task.originalSymbol
       });
     }
     catch(error){
@@ -213,50 +240,166 @@ class ConcurrencyQueue {
         fromCache: false
       };
       
-      // Don't cache errors, but resolve with error
       task.resolve(errorResult);
     }finally {
       this.running--;
       
-      // Add delay between requests to respect rate limits
       if (this.requestDelay > 0) {
         await delay(this.requestDelay);
       }
       
-      // Process next task in queue
       this.processQueue();
     }
   }
 
   private async executeTask(task:QueueTask): Promise<StockPriceResponse> {
-    const quote = await fetchQuoteWithTimeout(task.symbol, 8000);
-    if(!isValidQuote(quote)){
+    const quote = await this.fetchEnhancedQuote(task.symbol);
+    
+    if(!this.isValidQuote(quote)){
         throw new Error('Invalid or incomplete quote data received');
     }
-   return {
+
+    // Determine data quality based on available financial metrics
+    let dataQuality: 'complete' | 'partial' | 'basic' = 'basic';
+    const hasFinancialData = quote.trailingPE || quote.forwardPE || quote.trailingEps;
+    const hasExtendedData = quote.bookValue || quote.beta || quote.dividendYield;
+    
+    if (hasFinancialData && hasExtendedData) {
+      dataQuality = 'complete';
+    } else if (hasFinancialData || hasExtendedData) {
+      dataQuality = 'partial';
+    }
+
+    // Log data quality for debugging
+    console.log(`Data quality for ${task.originalSymbol}: ${dataQuality}`, {
+      price: quote.regularMarketPrice,
+      trailingPE: quote.trailingPE,
+      forwardPE: quote.forwardPE,
+      eps: quote.trailingEps,
+      marketCap: quote.marketCap
+    });
+
+    return {
       symbol: task.originalSymbol,
-      price: Number(quote.regularMarketPrice),
-      previousClose: quote.regularMarketPreviousClose 
-        ? Number(quote.regularMarketPreviousClose) 
-        : undefined,
-      changePercent: quote.regularMarketChangePercent 
-        ? Number(quote.regularMarketChangePercent) 
-        : undefined,
+      price: this.safeNumber(quote.regularMarketPrice) ?? 0,
+      previousClose: this.safeNumber(quote.regularMarketPreviousClose),
+      changePercent: this.safeNumber(quote.regularMarketChangePercent),
+      
+      // Enhanced financial metrics with better data extraction
+      peRatio: this.safeNumber(quote.trailingPE),
+      forwardPE: this.safeNumber(quote.forwardPE),
+      earningsPerShare: this.safeNumber(quote.trailingEps),
+      forwardEPS: this.safeNumber(quote.forwardEps),
+      marketCap: this.safeNumber(quote.marketCap),
+      dividendYield: this.safeNumber(quote.dividendYield),
+      bookValue: this.safeNumber(quote.bookValue),
+      priceToBook: this.safeNumber(quote.priceToBook),
+      beta: this.safeNumber(quote.beta),
+      fiftyTwoWeekHigh: this.safeNumber(quote.fiftyTwoWeekHigh),
+      fiftyTwoWeekLow: this.safeNumber(quote.fiftyTwoWeekLow),
+      avgVolume: this.safeNumber(quote.averageVolume),
+      
       success: true,
-      fromCache: false
+      fromCache: false,
+      dataQuality
     };
+  }
+
+  private async fetchEnhancedQuote(symbol: string): Promise<EnhancedQuoteData> {
+    try {
+      // First attempt: Comprehensive data with quoteSummary
+      console.log(`Fetching comprehensive data for ${symbol}`);
+      
+      const quoteSummaryData = await yahooFinance.quoteSummary(symbol, {
+        modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData']
+      });
+
+      // Extract and combine data from all modules
+      const price = quoteSummaryData.price;
+      const summaryDetail = quoteSummaryData.summaryDetail;
+      const keyStats = quoteSummaryData.defaultKeyStatistics;
+      const financialData = quoteSummaryData.financialData;
+
+      return {
+        // Price data
+        regularMarketPrice: price?.regularMarketPrice,
+        regularMarketPreviousClose: price?.regularMarketPreviousClose,
+        regularMarketChangePercent: price?.regularMarketChangePercent,
+        marketCap: price?.marketCap,
+        
+        // Summary detail data
+        trailingPE: summaryDetail?.trailingPE,
+        forwardPE: summaryDetail?.forwardPE,
+        dividendYield: summaryDetail?.dividendYield,
+        beta: summaryDetail?.beta,
+        fiftyTwoWeekHigh: summaryDetail?.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: summaryDetail?.fiftyTwoWeekLow,
+        averageVolume: summaryDetail?.averageVolume,
+        
+        // Key statistics data
+        trailingEps: keyStats?.trailingEps,
+        forwardEps: keyStats?.forwardEps,
+        bookValue: keyStats?.bookValue,
+        priceToBook: keyStats?.priceToBook,
+        enterpriseValue: keyStats?.enterpriseValue,
+        
+        // Financial data
+        totalRevenue: financialData?.totalRevenue,
+        revenuePerShare: financialData?.revenuePerShare,
+        returnOnEquity: financialData?.returnOnEquity
+      };
+      
+    } catch (error) {
+      console.warn(`quoteSummary failed for ${symbol}, trying basic quote:`, error instanceof Error ? error.message : 'Unknown error');
+      
+      try {
+        // Fallback: Basic quote data
+        const basicQuote = await yahooFinance.quote(symbol);
+        
+        return {
+          regularMarketPrice: basicQuote.regularMarketPrice,
+          regularMarketPreviousClose: basicQuote.regularMarketPreviousClose,
+          regularMarketChangePercent: basicQuote.regularMarketChangePercent,
+          marketCap: basicQuote.marketCap,
+          trailingPE: basicQuote.trailingPE,
+          forwardPE: basicQuote.forwardPE,
+          fiftyTwoWeekHigh: basicQuote.fiftyTwoWeekHigh,
+          fiftyTwoWeekLow: basicQuote.fiftyTwoWeekLow
+        };
+        
+      } catch (fallbackError) {
+        console.error(`Both quoteSummary and quote failed for ${symbol}`);
+        throw fallbackError;
+      }
+    }
+  }
+
+  private safeNumber(value: any): number | undefined {
+    if (value === null || value === undefined || isNaN(Number(value))) {
+      return undefined;
+    }
+    return Number(value);
+  }
+
+  private isValidQuote(quote: EnhancedQuoteData): boolean {
+    return !!(
+      quote && 
+      typeof quote === 'object' && 
+      quote.regularMarketPrice !== undefined && 
+      quote.regularMarketPrice !== null &&
+      !isNaN(Number(quote.regularMarketPrice))
+    );
   }
 
   async waitForCompletion(): Promise<void> {
     while (this.running > 0 || this.queue.length > 0) {
-      await delay(50); // Small delay to prevent busy waiting
+      await delay(50);
     }
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Enhanced request validation
     const contentType = request.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
       return NextResponse.json(
@@ -265,7 +408,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Safe JSON parsing
     let requestBody;
     try {
       const bodyText = await request.text();
@@ -286,15 +428,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { symbols, bustCache } = requestBody;
+    const { symbols, bustCache, includeFinancials = true } = requestBody;
     
-    // Optional cache busting
     if (bustCache === true) {
       globalStockCache.clear();
       console.log('Cache cleared by request');
     }
     
-    // Validate symbols
     if (!symbols) {
       return NextResponse.json(
         { error: 'Missing symbols field in request body' }, 
@@ -316,24 +456,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (symbols.length > 20) { // Increased limit since cache reduces API calls
+    if (symbols.length > 50) {
       return NextResponse.json(
-        { error: 'Maximum 20 symbols allowed per request' }, 
+        { error: 'Maximum 50 symbols allowed per request' }, 
         { status: 400 }
       );
     }
 
-    // Clean cache before processing
+    console.log(`Processing ${symbols.length} symbols with financials: ${includeFinancials}`);
+
     globalStockCache.cleanup();
 
-    // Create queue with cache
-    const queue = new ConcurrencyQueue(3, 200, globalStockCache);
+    const queue = new ConcurrencyQueue(5, 150, globalStockCache);
     const resultPromises: Promise<StockPriceResponse>[] = [];
 
-    // Add all symbols to the queue (cache will be checked automatically)
     for (const symbol of symbols) {
       if (!symbol || typeof symbol !== 'string') {
-        // Handle invalid symbols immediately
         resultPromises.push(
           Promise.resolve({
             symbol: symbol?.toString() || 'undefined',
@@ -355,24 +493,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Wait for all requests to complete
     const results = await Promise.all(resultPromises);
 
-    // Enhanced summary with cache statistics
-    const successful = results.filter(r => r.success).length;
-    const failed = results.length - successful;
-    const fromCache = results.filter(r => r.fromCache).length;
-    const fromAPI = successful - fromCache;
+    // Enhanced analytics
+    const analytics = {
+      total: results.length,
+      successful: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      fromCache: results.filter(r => r.fromCache).length,
+      dataQuality: {
+        complete: results.filter(r => r.dataQuality === 'complete').length,
+        partial: results.filter(r => r.dataQuality === 'partial').length,
+        basic: results.filter(r => r.dataQuality === 'basic').length
+      },
+      financialMetrics: {
+        withPE: results.filter(r => r.peRatio !== undefined).length,
+        withEPS: results.filter(r => r.earningsPerShare !== undefined).length,
+        withDividend: results.filter(r => r.dividendYield !== undefined).length,
+        withBookValue: results.filter(r => r.bookValue !== undefined).length
+      }
+    };
+
+    console.log('Enhanced API Results:', analytics);
+
+    const successful = analytics.successful;
+    const fromCache = analytics.fromCache;
     const cacheStats = globalStockCache.getStats();
 
     return NextResponse.json({ 
       results,
       summary: {
-        total: results.length,
-        successful,
-        failed,
-        fromCache,
-        fromAPI,
+        ...analytics,
+        fromAPI: successful - fromCache,
         cacheHitRate: results.length > 0 ? ((fromCache / results.length) * 100).toFixed(1) + '%' : '0%'
       },
       cache: {
@@ -398,42 +550,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper functions with proper typing and error handling
-async function fetchQuoteWithTimeout(symbol: string, timeoutMs: number): Promise<QuoteData> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`Request timeout after ${timeoutMs}ms for ${symbol}`));
-    }, timeoutMs);
-
-    yahooFinance.quote(symbol)
-      .then((quote) => {
-        clearTimeout(timeoutId);
-        resolve(quote as QuoteData);
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-  });
-}
-
-function isValidQuote(quote: QuoteData): boolean {
-  return !!(
-    quote && 
-    typeof quote === 'object' && 
-    quote.regularMarketPrice !== undefined && 
-    quote.regularMarketPrice !== null &&
-    !isNaN(Number(quote.regularMarketPrice))
-  );
-}
-
 function convertToYahooSymbol(symbol: string): string {
-  // Already has exchange suffix
   if (symbol.includes('.NS') || symbol.includes('.BO') || symbol.includes('.')) {
     return symbol.toUpperCase();
   }
   
-  // Indian stock symbols mapping
   const indianStocks: Record<string, string> = {
     'RELIANCE': 'RELIANCE.NS',
     'TCS': 'TCS.NS',
@@ -446,7 +567,15 @@ function convertToYahooSymbol(symbol: string): string {
     'LTIM': 'LTIM.NS',
     'AFFLE': 'AFFLE.NS',
     'SBIN': 'SBIN.NS',
-    'ITC': 'ITC.NS'
+    'ITC': 'ITC.NS',
+    'HCLTECH': 'HCLTECH.NS',
+    'AXISBANK': 'AXISBANK.NS',
+    'KOTAKBANK': 'KOTAKBANK.NS',
+    'MARUTI': 'MARUTI.NS',
+    'TITAN': 'TITAN.NS',
+    'NESTLEIND': 'NESTLEIND.NS',
+    'HINDUNILVR': 'HINDUNILVR.NS',
+    'BAJFINANCE': 'BAJFINANCE.NS'
   };
 
   const upperSymbol = symbol.toUpperCase();
@@ -456,6 +585,5 @@ function convertToYahooSymbol(symbol: string): string {
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 
 export { globalStockCache };
